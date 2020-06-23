@@ -39,6 +39,53 @@ To control the precision based on the humidity value set it to e.g. `{80: 0, 10:
 when humidity >= 80 precision will be 0, when humidity >= 10 precision will be 1.
 
 
+## OpenHAB integration and configuration
+In OpenHAB you need the MQTT Binding to be installed. It is possible to add this sensor as a generic mqtt thing, but here it is described how to add the sensor manually via an editor.
+
+To make the following configuration work, it is neccessary to enable the experimental attribute output in the configuration.yaml file:
+```yaml
+experimental:
+    output: attribute
+```
+
+If you want to know, when the sensor has been last seen, add following block to your configuration.yaml file:
+```yaml
+advanced:
+    last_seen: ISO_8601_local
+```
+
+### Things
+To add this Xiaomi WSDCGQ01LM MiJia temperature & humidity sensor as Thing, it is necessary to embed the Thing into a bridge definition of your mqtt broker.
+
+```yaml
+Bridge mqtt:broker:zigbeeBroker [ host="YourHostname", secure=false, username="your_username", password="your_password" ]
+{
+    Thing topic TempSensor "MiJia temperature & humidity sensor"  @ "Your room"
+    {
+        Channels:
+            Type number   : temperature "temperature"  [ stateTopic="zigbee2mqtt/<FRIENDLY_NAME>/temperature" ]
+            Type number   : humidity    "humidity"     [ stateTopic="zigbee2mqtt/<FRIENDLY_NAME>/humidity" ]
+            Type number   : voltage     "voltage"      [ stateTopic="zigbee2mqtt/<FRIENDLY_NAME>/voltage" ]
+            Type number   : battery     "battery"      [ stateTopic="zigbee2mqtt/<FRIENDLY_NAME>/battery" ]
+            Type number   : linkquality "link quality" [ stateTopic="zigbee2mqtt/<FRIENDLY_NAME>/linkquality" ]
+			/* If last_seen is enabled */
+            Type datetime : last_seen   "last seen"    [ stateTopic ="zigbee2mqtt/<FRIENDLY_NAME>/last_seen" ]
+    }
+}
+```
+
+### Items
+```yaml
+Number   temp_sensor_temp "temperature [%.1f °C]"               <temperature> {channel="mqtt:topic:zigbeeBroker:TempSensor:temperature"}
+Number   temp_sensor_hum  "humidity [%.1f %%]"                  <humidity>    {channel="mqtt:topic:zigbeeBroker:TempSensor:humidity"}
+Number   temp_sensor_volt "voltage [%d mV]"                     <energy>      {channel="mqtt:topic:zigbeeBroker:TempSensor:voltage"}
+Number   temp_sensor_batt "battery [%.1f %%]"                   <battery>     {channel="mqtt:topic:zigbeeBroker:TempSensor:battery"}
+Number   temp_sensor_lqi  "link qualitiy [%d]"                  <network>     {channel="mqtt:topic:zigbeeBroker:TempSensor:linkquality"}
+/* If last_seen is enabled */
+DateTime temp_sensor_ls   "last seen [%1$td.%1$tm.%1$tY %1$tR]" <string>      {channel="mqtt:topic:zigbeeBroker:TempSensor:last_seen"}
+```
+
+
 ## Manual Home Assistant configuration
 Although Home Assistant integration through [MQTT discovery](../integration/home_assistant) is preferred,
 manual integration is possible with the following configuration:
